@@ -1,0 +1,157 @@
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OpenCV.js</title>
+  <style>
+      /* display loading gif and hide webpage */
+    .modal {
+        display:    none;
+        position:   fixed;
+        z-index:    1000;
+        top:        0;
+        left:       0;
+        height:     100%;
+        width:      100%;
+        background: rgba( 255, 255, 255, .8)
+                    url('http://i.stack.imgur.com/FhHRx.gif')
+                    50% 50%
+                    no-repeat;
+    }
+
+    /* prevent scrollbar from display during load */
+    body.loading {
+        overflow: hidden;
+    }
+
+    /* display the modal when loading class is added to body */
+    body.loading .modal {
+        display: block;
+    }
+  </style>
+</head>
+<body>
+
+    <div>
+        <table cellpadding="0" cellspacing="0" width="0" border="0">
+        <tbody><tr>
+            <td>
+                <video id="videoInput" width="320" height="240"></video>
+            </td>
+            <td>
+                <canvas id="canvasOutput" width="320" height="240"></canvas>
+            </td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>
+                <div class="caption">videoInput</div>
+            </td>
+            <td>
+                <div class="caption">canvasOutput</div>
+            </td>
+            <td></td>
+            <td></td>
+        </tr>
+        </tbody></table>
+    </div>
+
+    <img id="imageSrc2" alt="No Image" name="fileToUpload" />
+    <button id="submit" type="button">Send</button>
+
+    <img id="imageSrc3" alt="No Image" name="fileToUpload" />
+
+
+    <script type="text/javascript">
+      document.body.classList.add('loading');
+    </script>
+
+    <script async src= "https://docs.opencv.org/3.4.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    <script type="text/javascript">
+        function onOpenCvReady() {
+            document.body.classList.remove('loading');
+            let video = document.getElementById("videoInput"); // video is the id of video tag
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    video.play();
+                })
+                .catch(function(err) {
+                    console.log("An error occurred! " + err);
+                });
+
+
+            let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+            let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+            let cap = new cv.VideoCapture(video);
+            let imgElement = document.getElementById('imageSrc2');
+            let canvasOutput = document.getElementById('canvasOutput');
+
+
+            const FPS = 30;
+            function processVideo() {
+                let begin = Date.now();
+                cap.read(src);
+                hsv = cv.cvtColor(src, dst, cv.COLOR_RGBA2RGB);
+                cv.imshow("canvasOutput", dst);
+                // schedule next one.
+
+                var canvas = document.getElementById('canvasOutput');
+                var dataURL = canvas.toDataURL();
+                imgElement.src = dataURL;
+
+                sendbase64(dataURL);
+
+
+                let delay = 1000/FPS - (Date.now() - begin);
+                setTimeout(processVideo, delay);
+
+            }
+
+            function sendbase64(dataURL){
+                let imageSrc2 = document.getElementById('imageSrc2')
+                const messageInputDom = dataURL;
+
+                const message = messageInputDom;
+                chatSocket.send(JSON.stringify({
+                    'message': message
+
+                }));
+
+                messageInputDom.value = '';
+            }
+
+
+            // schedule first one.
+            setTimeout(processVideo, 0);
+        }
+
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/example/send/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            document.querySelector('#imageSrc3').src = (data.message);
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+
+        document.querySelector('#imageSrc2').focus();
+        document.getElementById('imageSrc2').onchange = function() {
+                document.querySelector('#submit').click();
+                console.log("run");
+        };
+
+    </script>
+
+</body>
+</html>

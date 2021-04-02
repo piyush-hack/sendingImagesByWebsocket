@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <img id="imageSrc3" alt="No Image" name="fileToUpload" />
+
+<script>
+    const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/example/send/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            document.querySelector('#imageSrc3').src = (data.message);
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+</script>
+</body>
+</html>
